@@ -1,0 +1,23 @@
+---
+- name: create project
+  command: oc --context {{ cluster.context }} new-project istio-system
+  register: oc_res
+  failed_when: oc_res.rc >= 2
+
+- name: create project
+  command: oc --context {{ cluster.context }} adm policy add-scc-to-user anyuid -z istio-citadel-service-account -n istio-system
+
+- name: create project
+  command: oc --context {{ cluster.context }} adm policy add-scc-to-user anyuid -z istio-sidecar-injector-service-account -n istio-system    
+
+- name: install istio remote
+  shell: | 
+    helm template /tmp/istio/install/kubernetes/helm/istio-remote --namespace istio-system \
+    --name istio-remote \
+    --set global.remotePilotAddress={{ (clusters | selectattr('istio_control_plane') | list)[0].pilot_ip }} \
+    --set global.remotePolicyAddress={{ (clusters | selectattr('istio_control_plane')| list)[0].policy_ip }} \
+    --set global.remoteTelemetryAddress={{ (clusters | selectattr('istio_control_plane') | list)[0].telemetry_ip }} \
+    --set global.proxy.envoyStatsd.enabled=true \
+    --set global.proxy.envoyStatsd.host={{ (clusters | selectattr('istio_control_plane') | list)[0].statsd_ip }} \
+    --set global.remoteZipkinAddress={{ (clusters | selectattr('istio_control_plane') | list)[0].jaeger_ip }} | \
+    oc --context {{ cluster.context }} apply -f -

@@ -1,0 +1,34 @@
+---
+- name: login to the clusters
+  include_tasks: authenticate.yaml
+  with_items: "{{ clusters }}"
+  loop_control:
+    loop_var: cluster
+
+- name: collect control plane IPs
+  include_tasks: add-control-plane-ips.yaml
+  with_items: "{{ clusters | selectattr('istio_control_plane') | list }}"
+  loop_control:
+    loop_var: cluster
+
+- name: debug
+  debug:
+    var: clusters    
+
+- name: clone istio
+  git:
+    repo: 'https://github.com/istio/istio'
+    dest: /tmp/istio
+    version: "{{ istio_git_tag }}"
+
+- name: install istio remotes
+  include_tasks: install-istio-remote.yaml
+  with_items: "{{ clusters | rejectattr('istio_control_plane') | list }}"
+  loop_control:
+    loop_var: cluster  
+
+- name: create remote kubeconfig secrets
+  include_tasks: create-remote-kubeconfig-secret.yaml
+  with_items: "{{ clusters | rejectattr('istio_control_plane') | list }}"
+  loop_control:
+    loop_var: cluster            
