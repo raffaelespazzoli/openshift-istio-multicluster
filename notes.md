@@ -52,3 +52,18 @@ create the kubeconfig as a scret and label it for each remote in the main cluste
 kubectl create secret generic ${CLUSTER_NAME} --from-file ${KUBECFG_FILE} -n ${NAMESPACE}
 kubectl label secret ${CLUSTER_NAME} istio/multiCluster=true -n ${NAMESPACE}
 ```
+
+install bookinfo 
+oc new-project bookinfo
+oc adm policy add-scc-to-user privileged -z default -n bookinfo
+oc apply -f <(istioctl kube-inject -f artifacts/bookinfo.yaml) -n bookinfo
+oc expose svc productpage -n bookinfo
+
+
+ansible-playbook -vv -i ~/git/openshift-enablement-exam/misc/istio-mesh-extension/ansible/inventory ~/git/openshift-istio-multicluster/ansible/playbooks/istio-multicluster/deploy-istio-multicluster.yaml
+
+ansible nodes -vv -i /tmp/git/openshift-enablement-exam/misc/casl/inventory --private-key=~/.ssh/rspazzol-etl3.pem -e openstack_ssh_public_key=rspazzol -m shell -a "sysctl -w vm.max_map_count=262144"
+
+oc --context $CLUSTER1 new-project istio-operator
+oc --context $CLUSTER1 new-app -f artifacts/istio_product_operator_template.yaml --param=OPENSHIFT_ISTIO_MASTER_PUBLIC_URL=https://console.raffa1.casl-contrib.osp.rht-labs.com:8443 -n istio-operator
+oc --context $CLUSTER1 apply -f artifacts/openshift-servicemesh.yaml -n istio-operator 

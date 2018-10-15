@@ -16,7 +16,7 @@
   register: telemetry_ip 
   
 - name: get jaeger ip
-  command: oc --context {{ cluster.context }} -n istio-system get pod -l app=jaeger -o jsonpath='{range .items[*]}{.status.podIP}{end}'
+  command: oc --context {{ cluster.context }} -n istio-system get pod -l jaeger-infra=collector-pod -o jsonpath='{range .items[*]}{.status.podIP}{end}'
   register: jaeger_ip 
 
 - name: Add ips to cluster

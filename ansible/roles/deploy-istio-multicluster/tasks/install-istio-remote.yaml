@@ -21,3 +21,14 @@
     --set global.proxy.envoyStatsd.host={{ (clusters | selectattr('istio_control_plane') | list)[0].statsd_ip }} \
     --set global.remoteZipkinAddress={{ (clusters | selectattr('istio_control_plane') | list)[0].jaeger_ip }} | \
     oc --context {{ cluster.context }} apply -f -
+
+
+# istio sidecar injector in remote site must be the same of main site (for openshift mesh vs istio misaligments)      
+- name: extract istio sidecar injector config map
+  command: oc --context {{ (clusters | selectattr('istio_control_plane') | list)[0].context }} extract configmap/istio-sidecar-injector -n istio-system --to=/tmp --keys=config --confirm=true    
+
+- name: delete current istio sidecar injector config map
+  command: oc --context {{ cluster.context }} delete configmap istio-sidecar-injector -n istio-system
+  
+- name: create istio sidecar injector configmap
+  command: oc --context {{ cluster.context }} create configmap istio-sidecar-injector -n istio-system --from-file=/tmp/config  
