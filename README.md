@@ -8,11 +8,13 @@ The following prerequisites have to be met:
 2. The Pod's IPs must be routable between each other across all the cluster. To meet this requirement you can build an SDN network tunnel as described [here](https://blog.openshift.com/connecting-multiple-openshift-sdns-with-a-network-tunnel/)
 
 Once you met the above requirements you can run the playbook to install istio-multicluster.
+
 If you have used the link suggested above to install the network tunnel across the OpenShift SDNs, you can reuse the same inventory to run the istio-multiclutser playbook.
 
 ## Installing Istio-multicluster
 
 See an example of the inventory [here](./ansible/inventory) and customize it for your clusters.
+
 Here is a minimum inventory:
 ```
 clusters:
@@ -28,11 +30,11 @@ clusters:
   istio_control_plane: false 
 ```
 You must have exaclty one cluster with the `istio_control_plane` variable set to `true`.
+
 You can choose the istio version that you want to install by setting the following variable: `istio_git_tag`.
 
 You can run the playbook as follows:
 
-Run the playbook:
 ```
 ansible-playbook -i <inventory> ./ansible/playbooks/deploy-istio-multicluster/deploy-istio-multicluster.yaml
 ```
