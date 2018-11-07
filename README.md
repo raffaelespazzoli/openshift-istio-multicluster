@@ -92,11 +92,8 @@ Configure the mesh to use mTLS authentication when communicating with the `revie
 oc --context $CLUSTER1 apply -f artifacts/destination-rules.yaml -n bookinfo
 ```
 
-Notice that the product page service is still exposed with now security, this makes it simple for us to test.
-```
-oc get route productpage -n bookinfo
-```
-Point the browser to the output of the above command and navigate the app.
+The app will be available at this URL bookinfo.mesh.<ocp-app-default-subdomain>/productpage.
+you can retrive the `ocp-app-default-subdomain` running this command: `$(oc --context $CLUSTER1 get route registry-console -n default -o jsonpath='{.spec.host}' | cut -d '.' -f 1 --complement)`
 
 
 
