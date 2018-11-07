@@ -10,6 +10,8 @@ The following prerequisites have to be met:
 oc new-project istio-operator
 oc new-app -f artifacts/istio_product_operator_template.yaml --param=OPENSHIFT_ISTIO_MASTER_PUBLIC_URL=<master public url>
 oc apply -f artifacts/openshift-servicemesh[-mTLS].yaml -n istio-operator
+oc set env dc/router ROUTER_ALLOW_WILDCARD_ROUTES=true -n default
+oc process -f artifacts/ingressgateway-route.yaml -p SUBDOMAIN=$(oc get route registry-console -n default -o jsonpath='{.spec.host}' | cut -d '.' -f 1 --complement) -n istio-system | oc apply -n istio-system -f -
 ```
 use the `-mTLS` version of the servicemesh definition file, if you want to enable mTLS
 
@@ -56,25 +58,38 @@ ansible-playbook -i <inventory> ./ansible/playbooks/deploy-istio-multicluster/de
 ```
 ## Test mTLS
 
-If you decided to deploy with mTLS enabled, here is a simple test you can run to make sure that everything is in place correctly
+If you decided to deploy with mTLS enabled, here is a simple test you can run to make sure that everything is in place correctly.
+
+Log in to your clusters:
+
+```
+oc login --username=<user1> --password=<pwd1> <url1>
+CLUSTER1=$(oc config current-context)
+oc login --username=<user2> --password=<pwd2> <url2>
+CLUSTER2=$(oc config current-context)
+```
 
 Deploy bookinfo
 
 ```
-oc new-project bookinfo
-oc adm policy add-scc-to-user privileged -z default -n bookinfo
-oc apply -f <(istioctl kube-inject -f artifacts/bookinfo.yaml) -n bookinfo
-oc expose svc productpage -n bookinfo
+oc --context $CLUSTER1 new-project bookinfo
+oc --context $CLUSTER2 new-project bookinfo
+oc --context $CLUSTER1 adm policy add-scc-to-user privileged -z default -n bookinfo
+oc --context $CLUSTER2 adm policy add-scc-to-user privileged -z default -n bookinfo
+oc --context $CLUSTER1 apply -f <(istioctl kube-inject -f artifacts/bookinfo.yaml) -n bookinfo
+oc --context $CLUSTER2 apply -f <(istioctl kube-inject -f artifacts/bookinfo.yaml) -n bookinfo
+
+oc --context $CLUSTER1 process -f artifacts/productpage-gateway.yaml -p SUBDOMAIN=$(oc --context $CLUSTER1 get route registry-console -n default -o jsonpath='{.spec.host}' | cut -d '.' -f 1 --complement) -n bookinfo | oc --context $CLUSTER1 apply -n bookinfo -f -
 ```
 
 Configure the `reviews`, `details` and `ratings` services to require mTLS authentication by appliying a istio Policy:
 ```
-oc apply -f artifacts/mTLS-policy.yaml -n bookinfo
+oc --context $CLUSTER1 apply -f artifacts/mTLS-policy.yaml -n bookinfo
 ```
 
 Configure the mesh to use mTLS authentication when communicating with the `reviews`, `details` and `ratings` services, by applying a destination rule:
 ```
-oc apply -f artifacts/destination-rules.yaml -n bookinfo
+oc --context $CLUSTER1 apply -f artifacts/destination-rules.yaml -n bookinfo
 ```
 
 Notice that the product page service is still exposed with now security, this makes it simple for us to test.

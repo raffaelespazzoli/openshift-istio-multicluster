@@ -10,5 +10,3 @@ spec:
   - name: details
   - name: reviews
   - name: ratings
-  ports:
-  - number: 9080

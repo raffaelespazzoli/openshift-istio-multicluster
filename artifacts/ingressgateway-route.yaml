@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Template
+labels:
+  template: mesh-route
+metadata:
+  name: mesh-route
+objects:
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: mesh-route  
+  spec:
+    host: wildcard.mesh.${SUBDOMAIN}  
+    wildcardPolicy: Subdomain   
+    to:
+      kind: Service
+      name: istio-ingressgateway
+    port:
+      targetPort: 80  
+parameters:
+- description: OpenShift's subdomain.
+  name: SUBDOMAIN
+  required: true      
