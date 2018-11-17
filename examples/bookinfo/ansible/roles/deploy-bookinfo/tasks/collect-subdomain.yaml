@@ -1,0 +1,12 @@
+---
+- name: get subdomain
+  shell: oc --context {{ cluster.context }} get route registry-console -n default -o jsonpath='{.spec.host}' | cut -d '.' -f 1 --complement
+  register: subdomain
+
+- name: Add ips to cluster
+  set_fact:
+    tmp_cluster: "{{ [ (clusters | selectattr('name', 'match', cluster.name) | list | combine([{'subdomain': subdomain.stdout}]))] }}"       
+  
+- name: Update Clusters
+  set_fact:
+    clusters: "{{ clusters | rejectattr('name', 'match', cluster['name']) | list }} + {{ tmp_cluster }}"  

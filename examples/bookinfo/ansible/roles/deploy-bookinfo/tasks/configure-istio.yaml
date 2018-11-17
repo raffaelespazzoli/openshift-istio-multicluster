@@ -1,0 +1,16 @@
+--- 
+- name: create mTLS policy   
+  command: oc --context {{ cluster.context }} apply -f {{ role_path }}/files/mTLS-policy.yaml -n bookinfo  
+
+- name: create destination rules
+  command: oc --context {{ cluster.context }} apply -f {{ role_path }}/files/destination-rules.yaml -n bookinfo 
+
+- name: process gateway and service template
+  template:
+    src: productpage-gateway.yaml.j2
+    dest: "/tmp/productpage-gateway-{{ cluster.name }}.yaml"
+  vars:
+    namespace: bookinfo
+
+- name: create gateway and service config
+  command: oc --context {{ cluster.context }} apply -f /tmp/productpage-gateway-{{ cluster.name }}.yaml -n bookinfo      

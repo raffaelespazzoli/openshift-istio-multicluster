@@ -13,13 +13,7 @@
 
 - name: debug
   debug:
-    var: clusters    
-
-- name: clone istio
-  git:
-    repo: 'https://github.com/istio/istio'
-    dest: /tmp/istio
-    version: "{{ istio_git_tag }}"
+    var: clusters
 
 - name: install istio remotes
   include_tasks: install-istio-remote.yaml
@@ -31,4 +25,6 @@
   include_tasks: create-remote-kubeconfig-secret.yaml
   with_items: "{{ clusters | rejectattr('istio_control_plane') | list }}"
   loop_control:
-    loop_var: cluster            
+    loop_var: cluster 
+
+             

@@ -1,4 +1,3 @@
-istio_git_tag: 1.0.2
 enable_mTLS: true
 certificate_dir: ../../../artifacts/certs
 control_plane_discovery: svc

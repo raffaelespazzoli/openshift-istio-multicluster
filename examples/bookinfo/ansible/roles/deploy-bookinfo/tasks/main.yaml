@@ -1,0 +1,34 @@
+---
+- name: login to the clusters
+  include_tasks: authenticate.yaml
+  with_items: "{{ clusters }}"
+  loop_control:
+    loop_var: cluster
+
+- name: collect control plane IPs
+  include_tasks: add-control-plane-ips.yaml
+  with_items: "{{ clusters | selectattr('istio_control_plane') | list }}"
+  loop_control:
+    loop_var: cluster   
+
+- name: collect subdomain
+  include_tasks: collect-subdomain.yaml
+  with_items: "{{ clusters }}"
+  loop_control:
+    loop_var: cluster       
+
+- name: debug
+  debug:
+    var: clusters    
+
+- name: create wildcard route
+  include_tasks: deploy-bookinfo.yaml
+  with_items: "{{ clusters }}"
+  loop_control:
+    loop_var: cluster      
+
+- name: configure istio
+  include_tasks: configure-istio.yaml
+  with_items: "{{ clusters | selectattr('istio_control_plane') | list }}"
+  loop_control:
+    loop_var: cluster         

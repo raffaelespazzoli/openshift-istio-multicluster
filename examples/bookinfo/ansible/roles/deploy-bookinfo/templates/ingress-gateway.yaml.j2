@@ -1,0 +1,251 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: istio-ingressgateway
+    chart: gateways-1.0.1
+    heritage: Tiller
+    istio: ingressgateway
+    release: istio-remote
+  name: istio-ingressgateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: istio-ingressgateway
+      istio: bookinfo-ingressgateway
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
+      labels:
+        app: istio-ingressgateway
+        istio: bookinfo-ingressgateway
+    spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - preference:
+              matchExpressions:
+              - key: beta.kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+            weight: 2
+          - preference:
+              matchExpressions:
+              - key: beta.kubernetes.io/arch
+                operator: In
+                values:
+                - ppc64le
+            weight: 2
+          - preference:
+              matchExpressions:
+              - key: beta.kubernetes.io/arch
+                operator: In
+                values:
+                - s390x
+            weight: 2
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: beta.kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+                - ppc64le
+                - s390x
+      containers:
+      - args:
+        - proxy
+        - router
+        - -v
+        - "4"
+        - --discoveryRefreshDelay
+        - 1s
+        - --drainDuration
+        - 45s
+        - --parentShutdownDuration
+        - 1m0s
+        - --connectTimeout
+        - 10s
+        - --serviceCluster
+        - istio-ingressgateway
+        - --zipkinAddress
+        - {{ (clusters | selectattr('istio_control_plane') | list)[0].jaeger_ip }}:9411
+        - --statsdUdpAddress
+        - {{ (clusters | selectattr('istio_control_plane') | list)[0].statsd_ip }}:9125
+        - --proxyAdminPort
+        - "15000"
+        - --controlPlaneAuthPolicy
+        - NONE
+        - --discoveryAddress
+        - {{ (clusters | selectattr('istio_control_plane') | list)[0].pilot_ip }}:8080
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: INSTANCE_IP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        - name: ISTIO_META_POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        image: gcr.io/istio-release/proxyv2:release-1.0-latest-daily
+        imagePullPolicy: IfNotPresent
+        name: istio-proxy
+        ports:
+        - containerPort: 80
+          protocol: TCP
+        - containerPort: 443
+          protocol: TCP
+        - containerPort: 31400
+          protocol: TCP
+        - containerPort: 15011
+          protocol: TCP
+        - containerPort: 8060
+          protocol: TCP
+        - containerPort: 853
+          protocol: TCP
+        - containerPort: 15030
+          protocol: TCP
+        - containerPort: 15031
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 10m
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /etc/certs
+          name: istio-certs
+          readOnly: true
+        - mountPath: /etc/istio/ingressgateway-certs
+          name: ingressgateway-certs
+          readOnly: true
+        - mountPath: /etc/istio/ingressgateway-ca-certs
+          name: ingressgateway-ca-certs
+          readOnly: true
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: istio-ingressgateway-service-account
+      serviceAccountName: istio-ingressgateway-service-account
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: istio-certs
+        secret:
+          defaultMode: 420
+          optional: true
+          secretName: istio.istio-ingressgateway-service-account
+      - name: ingressgateway-certs
+        secret:
+          defaultMode: 420
+          optional: true
+          secretName: istio-ingressgateway-certs
+      - name: ingressgateway-ca-certs
+        secret:
+          defaultMode: 420
+          optional: true
+          secretName: istio-ingressgateway-ca-certs
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app: ingressgateway
+    chart: gateways-1.0.1
+    heritage: Tiller
+    release: istio-remote
+  name: istio-ingressgateway-service-account
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: istio-ingressgateway-istio-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: istio-ingressgateway-istio-system
+subjects:
+  - kind: ServiceAccount
+    name: istio-ingressgateway-service-account
+    namespace: {{ namespace }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: istio-ingressgateway
+  annotations:
+    service.alpha.openshift.io/serving-cert-secret-name: istio-ingressgateway-certs
+  labels:
+    chart: gateways-1.0.1
+    release: istio-remote
+    heritage: Tiller
+    app: istio-ingressgateway
+    istio: ingressgateway
+spec:
+  type: LoadBalancer
+  selector:
+    app: istio-ingressgateway
+    istio: bookinfo-ingressgateway
+  ports:
+    -
+      name: http2
+      port: 80
+      targetPort: 80
+    -
+      name: https
+      port: 443
+      targetPort: 443
+    -
+      name: tcp
+      port: 31400
+      targetPort: 31400
+    -
+      name: tcp-pilot-grpc-tls
+      port: 15011
+      targetPort: 15011
+    -
+      name: tcp-citadel-grpc-tls
+      port: 8060
+      targetPort: 8060
+    -
+      name: tcp-dns-tls
+      port: 853
+      targetPort: 853
+    -
+      name: http2-prometheus
+      port: 15030
+      targetPort: 15030
+    -
+      name: http2-grafana
+      port: 15031
+      targetPort: 15031
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: istio-ingressgateway
+spec:
+  host: bookinfo.{{ cluster.subdomain }}
+  port:
+    targetPort: 443
+  to:
+    kind: Service
+    name: istio-ingressgateway
+  tls:
+    termination: reencrypt           

@@ -8,10 +8,8 @@ The following prerequisites have to be met:
 2. The istio control plane must be installed in one of the cluster. To do so, you can follow the instruction on installing [Red Had OpenShift Service Mesh](https://docs.openshift.com/container-platform/3.11/servicemesh-install/servicemesh-install.html). If you want to run a quick trial, you can rune these commands:
 ```
 oc new-project istio-operator
-oc new-app -f artifacts/istio_product_operator_template.yaml --param=OPENSHIFT_ISTIO_MASTER_PUBLIC_URL=<master public url>
+oc new-app -f artifacts/istio_product_operator_template.yaml --param=OPENSHIFT_ISTIO_MASTER_PUBLIC_URL=<master public url> -n istio-operator
 oc apply -f artifacts/openshift-servicemesh[-mTLS].yaml -n istio-operator
-oc set env dc/router ROUTER_ALLOW_WILDCARD_ROUTES=true -n default
-oc process -f artifacts/ingressgateway-route.yaml -p SUBDOMAIN=$(oc get route registry-console -n default -o jsonpath='{.spec.host}' | cut -d '.' -f 1 --complement) -n istio-system | oc apply -n istio-system -f -
 ```
 use the `-mTLS` version of the servicemesh definition file, if you want to enable mTLS
 

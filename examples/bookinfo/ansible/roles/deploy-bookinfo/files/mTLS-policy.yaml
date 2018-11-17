@@ -1,0 +1,13 @@
+apiVersion: "authentication.istio.io/v1alpha1"
+kind: "Policy"
+metadata:
+  name: "mtls-bookinfo"
+  namespace: "bookinfo"
+spec:
+  peers:
+  - mtls: {}
+  targets:
+  - name: details
+  - name: reviews
+  - name: ratings
+  - name: productpage

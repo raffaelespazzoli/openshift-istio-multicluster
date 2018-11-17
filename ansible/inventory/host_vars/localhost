@@ -1,4 +1,4 @@
-istio_git_tag: 1.0.2
+mesh_subdomain: 
 clusters:
 - name: raffa1
   url: console.raffa1.casl-contrib.osp.rht-labs.com:8443

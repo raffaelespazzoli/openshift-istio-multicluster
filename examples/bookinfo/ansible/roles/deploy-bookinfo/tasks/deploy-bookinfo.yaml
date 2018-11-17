@@ -1,0 +1,26 @@
+- name: create project
+  command: oc --context {{ cluster.context }} new-project bookinfo
+  register: oc_res
+  failed_when: oc_res.rc >= 2
+
+- name: label project for auto injection
+  command: oc --context {{ cluster.context }} label namespace bookinfo istio-injection=enabled --overwrite=true
+
+- name: add privileged scc to default sa
+  command: oc --context {{ cluster.context }} adm policy add-scc-to-user privileged -z default -n bookinfo  
+
+- name: add anyuid scc to istio-ingressgateway-service-account sa
+  command: oc --context {{ cluster.context }} adm policy add-scc-to-user anyuid -z istio-ingressgateway-service-account -n bookinfo  
+
+- name: create bookinfo app
+  shell: istioctl kube-inject --context {{ cluster.context }} -f {{ role_path }}/files/bookinfo.yaml | oc --context {{ cluster.context }} apply -f - -n bookinfo
+
+- name: process ingressgateway template
+  template:
+    src: ingress-gateway.yaml.j2
+    dest: "/tmp/ingress-gateway-{{ cluster.name }}.yaml"
+  vars:
+    namespace: bookinfo
+
+- name: deploy ingressgateway and route     
+  command: oc --context {{ cluster.context }} apply -f /tmp/ingress-gateway-{{ cluster.name }}.yaml -n bookinfo

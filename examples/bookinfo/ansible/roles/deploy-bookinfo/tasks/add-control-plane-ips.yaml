@@ -1,0 +1,56 @@
+---
+
+- name: get control plane pod ips
+  block: 
+  - name: get pilot ip
+    command: oc --context {{ cluster.context }} -n istio-system get pod -l istio=pilot -o jsonpath='{.items[0].status.podIP}'
+    register: pilot_ip
+
+  - name: get policy ip
+    command: oc --context {{ cluster.context }} -n istio-system get pod -l istio-mixer-type=policy -o jsonpath='{.items[0].status.podIP}'
+    register: policy_ip  
+
+  - name: get statsd ip
+    command: oc --context {{ cluster.context }} -n istio-system get pod -l istio=statsd-prom-bridge -o jsonpath='{.items[0].status.podIP}'
+    register: statsd_ip   
+
+  - name: get telemetry ip
+    command: oc --context {{ cluster.context }} -n istio-system get pod -l istio-mixer-type=telemetry -o jsonpath='{.items[0].status.podIP}'
+    register: telemetry_ip 
+    
+  - name: get jaeger ip
+    command: oc --context {{ cluster.context }} -n istio-system get pod -l jaeger-infra=collector-pod -o jsonpath='{range .items[*]}{.status.podIP}{end}'
+    register: jaeger_ip
+  when: control_plane_discovery == 'pod'  
+
+- name: get control plane svc ip
+  block: 
+  - name: get pilot ip
+    command: oc --context {{ cluster.context }} -n istio-system get svc istio-pilot -o jsonpath='{.spec.clusterIP}'
+    register: pilot_ip
+
+  - name: get policy ip
+    command: oc --context {{ cluster.context }} -n istio-system get svc istio-policy -o jsonpath='{.spec.clusterIP}'
+    register: policy_ip  
+
+  - name: get statsd ip
+    command: oc --context {{ cluster.context }} -n istio-system get svc istio-statsd-prom-bridge -o jsonpath='{.spec.clusterIP}'
+    register: statsd_ip   
+
+  - name: get telemetry ip
+    command: oc --context {{ cluster.context }} -n istio-system get svc istio-telemetry -o jsonpath='{.spec.clusterIP}'
+    register: telemetry_ip 
+    
+  - name: get jaeger ip
+    command: oc --context {{ cluster.context }} -n istio-system get svc jaeger-collector -o jsonpath='{.spec.clusterIP}'
+    register: jaeger_ip
+  when: control_plane_discovery == 'svc'
+
+
+- name: Add ips to cluster
+  set_fact:
+    tmp_cluster: "{{ [ (clusters | selectattr('name', 'match', cluster.name) | list | combine([{'pilot_ip': pilot_ip.stdout, 'policy_ip': policy_ip.stdout, 'statsd_ip': statsd_ip.stdout, 'telemetry_ip': telemetry_ip.stdout, 'jaeger_ip': jaeger_ip.stdout}]))] }}"       
+  
+- name: Update Clusters
+  set_fact:
+    clusters: "{{ clusters | rejectattr('name', 'match', cluster['name']) | list }} + {{ tmp_cluster }}"
