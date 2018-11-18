@@ -8,6 +8,14 @@ spec:
     istio: bookinfo-ingressgateway
   servers:
   - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+{% for ext_cluster in clusters %}
+    - bookinfo.{{ ext_cluster.subdomain }}
+{% endfor %}
+  - port:
       number: 443
       name: https
       protocol: HTTPS

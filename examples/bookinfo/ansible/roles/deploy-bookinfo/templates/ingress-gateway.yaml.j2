@@ -236,6 +236,19 @@ spec:
       port: 15031
       targetPort: 15031
 ---
+# apiVersion: route.openshift.io/v1
+# kind: Route
+# metadata:
+#   name: istio-ingressgateway
+# spec:
+#   host: bookinfo.{{ cluster.subdomain }}
+#   port:
+#     targetPort: 443
+#   to:
+#     kind: Service
+#     name: istio-ingressgateway
+#   tls:
+#     termination: reencrypt
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
@@ -243,9 +256,7 @@ metadata:
 spec:
   host: bookinfo.{{ cluster.subdomain }}
   port:
-    targetPort: 443
+    targetPort: 80
   to:
     kind: Service
-    name: istio-ingressgateway
-  tls:
-    termination: reencrypt           
+    name: istio-ingressgateway              
