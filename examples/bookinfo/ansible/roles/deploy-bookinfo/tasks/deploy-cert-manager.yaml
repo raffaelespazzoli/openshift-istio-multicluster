@@ -1,0 +1,11 @@
+---
+- name: create project
+  command: oc --context {{ cluster.context }} new-project cert-manager
+  register: oc_res
+  failed_when: oc_res.rc >= 2
+
+- name: deploy cert-manager
+  shell: helm template --name my-release {{ role_path}}/files/charts/cert-manager --namespace cert-manager | oc --context {{ cluster.context }} apply -f - -n cert-manager
+
+- name: deploy cluster-wide self-signed issuer
+  command: oc --context {{ cluster.context }} apply -f {{ role_path }}/files/self-signing-issuer.yaml -n cert-manager

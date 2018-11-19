@@ -1,6 +1,6 @@
 # Istio-Multicluster for OpenShift
 
-This repo featreus an ansible playbook that installs istio-multicluster on a set of OpenShift clusters.
+This repo features an ansible playbook that installs istio-multicluster on a set of OpenShift clusters.
 
 The following prerequisites have to be met:
 
@@ -26,6 +26,10 @@ If for the above step, you didn't use the provided example ca certificates, make
 Once you met the above requirements you can run the playbook to install istio-multicluster.
 
 If you have used the link suggested above to install the network tunnel across the OpenShift SDNs, you can reuse the same inventory to run the istio-multiclutser playbook.
+
+Istio multicluster has the following architecture:
+
+![Istio-multicluster-deployment](./media/Istio-multicluster-deployment.png)
 
 ## Installing Istio-multicluster
 
@@ -54,45 +58,21 @@ You can run the playbook as follows:
 ```
 ansible-playbook -i <inventory> ./ansible/playbooks/deploy-istio-multicluster/deploy-istio-multicluster.yaml
 ```
-## Test mTLS
 
-If you decided to deploy with mTLS enabled, here is a simple test you can run to make sure that everything is in place correctly.
 
-Log in to your clusters:
+## Deploying the bookinfo app
 
-```
-oc login --username=<user1> --password=<pwd1> <url1>
-CLUSTER1=$(oc config current-context)
-oc login --username=<user2> --password=<pwd2> <url2>
-CLUSTER2=$(oc config current-context)
-```
+This example show how to deploy the bookinfo app and secure all the internal connections with mTLS and the inbound traffic with 1-way TLS.
+So you need to have set the `enable_mTLS` option to true (the default).
+The generated deployment is the following:
 
-Deploy bookinfo
+![Istio-multicluster-ingress-gateway](./media/Istio-multicluster-ingress-gateway.png)
+
+You can reuse the same inventory you used to deploy istio-multicluster, but you need to add the following variable `bookinfo_domain`.
+this variable will define the domain on which bookinfo will be exposed. the only hostname accepted by the ingress-gateway is going to be bookinfo.<bookinfo_domain>. You can run the inventory as follows:
 
 ```
-oc --context $CLUSTER1 new-project bookinfo
-oc --context $CLUSTER2 new-project bookinfo
-oc --context $CLUSTER1 adm policy add-scc-to-user privileged -z default -n bookinfo
-oc --context $CLUSTER2 adm policy add-scc-to-user privileged -z default -n bookinfo
-oc --context $CLUSTER1 apply -f <(istioctl kube-inject -f artifacts/bookinfo.yaml) -n bookinfo
-oc --context $CLUSTER2 apply -f <(istioctl kube-inject -f artifacts/bookinfo.yaml) -n bookinfo
-
-oc --context $CLUSTER1 process -f artifacts/productpage-gateway.yaml -p SUBDOMAIN=$(oc --context $CLUSTER1 get route registry-console -n default -o jsonpath='{.spec.host}' | cut -d '.' -f 1 --complement) -n bookinfo | oc --context $CLUSTER1 apply -n bookinfo -f -
+ansible-playbook -i <inventory> ./examples/bookinfo/ansible/playbooks/deploy-bookinfo/deploy-bookinfo.yaml
 ```
 
-Configure the `reviews`, `details` and `ratings` services to require mTLS authentication by appliying a istio Policy:
-```
-oc --context $CLUSTER1 apply -f artifacts/mTLS-policy.yaml -n bookinfo
-```
-
-Configure the mesh to use mTLS authentication when communicating with the `reviews`, `details` and `ratings` services, by applying a destination rule:
-```
-oc --context $CLUSTER1 apply -f artifacts/destination-rules.yaml -n bookinfo
-```
-
-The app will be available at this URL `http://bookinfo.mesh.<ocp-app-default-subdomain>/productpage`.
-you can retrive the `ocp-app-default-subdomain` running this command: `$(oc --context $CLUSTER1 get route registry-console -n default -o jsonpath='{.spec.host}' | cut -d '.' -f 1 --complement)`
-
-
-
-@TODO Add of securing the control plane
+The ingress gateway is exposed with a LoadBalance service. This will create an extenral IP in cloud environments. In non cloud environments you can use featyures like [externalIPs](https://docs.openshift.com/container-platform/3.11/admin_guide/tcp_ingress_external_ports.html) or node ports. Because the application is deployed on multiple clusters, you will have multiple external IP. the booninfo fully qualified name should be resolved to any of those IP. It is up to you to configure a (global) load balancer to do so.

@@ -7,14 +7,12 @@ spec:
   selector:
     istio: bookinfo-ingressgateway
   servers:
-  - port:
-      number: 80
-      name: http
-      protocol: HTTP
-    hosts:
-{% for ext_cluster in clusters %}
-    - bookinfo.{{ ext_cluster.subdomain }}
-{% endfor %}
+  # - port:
+  #     number: 80
+  #     name: http
+  #     protocol: HTTP
+  #   hosts:
+  #   - bookinfo.{{ bookinfo_domain }}
   - port:
       number: 443
       name: https
@@ -24,9 +22,7 @@ spec:
       serverCertificate: /etc/istio/ingressgateway-certs/tls.crt
       privateKey: /etc/istio/ingressgateway-certs/tls.key
     hosts:      
-{% for ext_cluster in clusters %}
-    - bookinfo.{{ ext_cluster.subdomain }}
-{% endfor %}
+    - bookinfo.{{ bookinfo_domain }}
 ---
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
@@ -34,9 +30,7 @@ metadata:
   name: bookinfo
 spec:
   hosts:
-{% for ext_cluster in clusters %}
-  - bookinfo.{{ ext_cluster.subdomain }}
-{% endfor %}
+  - bookinfo.{{ bookinfo_domain }}
   gateways:
   - bookinfo-gateway
   http:

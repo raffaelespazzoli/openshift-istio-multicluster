@@ -19,9 +19,15 @@
 
 - name: debug
   debug:
-    var: clusters    
+    var: clusters  
+    
+- name: deploy cert-manager
+  include_tasks: deploy-cert-manager.yaml
+  with_items: "{{ clusters }}"
+  loop_control:
+    loop_var: cluster     
 
-- name: create wildcard route
+- name: deploy bookinfo
   include_tasks: deploy-bookinfo.yaml
   with_items: "{{ clusters }}"
   loop_control:
