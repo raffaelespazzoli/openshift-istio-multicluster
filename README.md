@@ -66,7 +66,7 @@ This example show how to deploy the bookinfo app and secure all the internal con
 So you need to have set the `enable_mTLS` option to true (the default).
 The generated deployment is the following:
 
-![Istio-multicluster-ingress-gateway](./media/Istio-multicluster-ingress-gateway.png)
+![Istio-multicluster-ingress-gateway](./media/Istio-multicluster-ingress-gateways.png)
 
 You can reuse the same inventory you used to deploy istio-multicluster, but you need to add the following variable `bookinfo_domain`.
 this variable will define the domain on which bookinfo will be exposed. the only hostname accepted by the ingress-gateway is going to be bookinfo.<bookinfo_domain>. You can run the inventory as follows:
