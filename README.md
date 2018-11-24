@@ -51,8 +51,6 @@ clusters:
 ```
 You must have exaclty one cluster with the `istio_control_plane` variable set to `true`.
 
-You can choose the istio version that you want to install by setting the following variable: `istio_git_tag`.
-
 You can run the playbook as follows:
 
 ```
